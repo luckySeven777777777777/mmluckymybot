@@ -16,29 +16,34 @@ const LINKS = {
   "Withdrawl - Kbzpay/Wavemoney/Binanceငွေထုတ်မည်": "https://example.com/withdraw",
   "Agent - အခုဆက်သွယ်မည်": "https://t.me/your_agent",
   "2D/3D - အခုကစားမည်": "https://example.com/2d3d",
-  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့်မည်": "https://example.com/live",
+  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့္မည်": "https://example.com/live",
   "Bet Slot Game - အခုကစားမည်": "https://example.com/slot",
   "Point - အမှတ်ယူမည်": "https://example.com/point",
   "Free Game - Free Gameကစားမည်": "https://example.com/free",
   "Support - 24Hr Online Service": "https://t.me/nexbitonlineservice"
 };
 
-/* ================== ReplyKeyboard（左右两列） ================== */
+/* ================== 左右两列 ReplyKeyboard ================== */
 const buildKeyboard = () => {
   const keys = Object.keys(LINKS);
   const rows = [];
+
   for (let i = 0; i < keys.length; i += 2) {
     rows.push([
       { text: keys[i] },
       ...(keys[i + 1] ? [{ text: keys[i + 1] }] : [])
     ]);
   }
-  return { keyboard: rows, resize_keyboard: true };
+
+  return {
+    keyboard: rows,
+    resize_keyboard: true
+  };
 };
 
 const KEYBOARD = buildKeyboard();
 
-/* ================== 发送消息（强制可点击链接） ================== */
+/* ================== 发送消息（HTML + 可点击链接） ================== */
 const sendMessage = async (chat_id, text, reply_markup = null) => {
   const res = await fetch(`${API}/sendMessage`, {
     method: "POST",
@@ -68,31 +73,30 @@ app.post("/webhook", async (req, res) => {
   }
 
   const chatId = msg.chat.id;
-  const rawText = msg.text;
-  const text = rawText.trim(); // ⭐⭐⭐ 关键
+  const text = msg.text.trim();
 
   console.log("User text:", JSON.stringify(text));
 
-  /* ===== /start ===== */
+  /* ===== /start 显示菜单 ===== */
   if (text === "/start") {
     await sendMessage(
       chatId,
-      "🎉 <b>Welcome</b> 🎉<br/><br/>👇 Please choose from menu 👇",
+      "🎉 <b>Welcome</b> 🎉\n\n👇 Please choose from menu 👇",
       KEYBOARD
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 按钮点击 ===== */
+  /* ===== 点击菜单按钮 → 返回可点击链接 ===== */
   if (LINKS[text]) {
     await sendMessage(
       chatId,
-      `🔗 <b>${text}</b><br/><br/>👉 <a href="${LINKS[text]}">点击这里打开</a>`
+      `🔗 <b>${text}</b>\n\n👉 <a href="${LINKS[text]}">点击这里打开</a>`
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 兜底（防止“没反应”） ===== */
+  /* ===== 兜底（防止没反应） ===== */
   await sendMessage(
     chatId,
     "⚠️ 未识别的指令，请使用下方菜单 👇",
