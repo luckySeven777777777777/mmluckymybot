@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 /* ================== 基础配置 ================== */
-const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN; // 在环境变量里设置 BOT_TOKEN
 const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 /* ================== 菜单按钮 → 链接 ================== */
@@ -16,14 +16,14 @@ const LINKS = {
   "Withdrawl - Kbzpay/Wavemoney/Binanceငွေထုတ်မည်": "https://example.com/withdraw",
   "Agent - အခုဆက်သွယ်မည်": "https://t.me/your_agent",
   "2D/3D - အခုကစားမည်": "https://example.com/2d3d",
-  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့္မည်": "https://example.com/live",
+  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့်မည်": "https://example.com/live",
   "Bet Slot Game - အခုကစားမည်": "https://example.com/slot",
   "Point - အမှတ်ယူမည်": "https://example.com/point",
   "Free Game - Free Gameကစားမည်": "https://example.com/free",
   "Support - 24Hr Online Service": "https://t.me/nexbitonlineservice"
 };
 
-/* ================== 左右两列 ReplyKeyboard ================== */
+/* ================== 构建 ReplyKeyboard ================== */
 const buildKeyboard = () => {
   const keys = Object.keys(LINKS);
   const rows = [];
@@ -37,24 +37,30 @@ const buildKeyboard = () => {
 
   return {
     keyboard: rows,
-    resize_keyboard: true
+    resize_keyboard: true,
+    one_time_keyboard: false
   };
 };
 
 const KEYBOARD = buildKeyboard();
 
-/* ================== 发送消息（HTML + 可点击链接） ================== */
+/* ================== 发送消息函数 ================== */
 const sendMessage = async (chat_id, text, reply_markup = null) => {
+  const body = {
+    chat_id,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: false
+  };
+
+  if (reply_markup) {
+    body.reply_markup = reply_markup;
+  }
+
   const res = await fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id,
-      text,
-      reply_markup,
-      parse_mode: "HTML",
-      disable_web_page_preview: false
-    })
+    body: JSON.stringify(body)
   });
 
   const data = await res.json();
@@ -75,7 +81,7 @@ app.post("/webhook", async (req, res) => {
   const chatId = msg.chat.id;
   const text = msg.text.trim();
 
-  console.log("User text:", JSON.stringify(text));
+  console.log("User text:", text);
 
   /* ===== /start 显示菜单 ===== */
   if (text === "/start") {
