@@ -6,7 +6,6 @@ app.use(express.json());
 
 /* ================== 基础配置 ================== */
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const OWNER_ID = Number(process.env.OWNER_ID);
 const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 /* ================== 菜单按钮 → 链接 ================== */
@@ -17,14 +16,14 @@ const LINKS = {
   "Withdrawl - Kbzpay/Wavemoney/Binanceငွေထုတ်မည်": "https://example.com/withdraw",
   "Agent - အခုဆက်သွယ်မည်": "https://t.me/your_agent",
   "2D/3D - အခုကစားမည်": "https://example.com/2d3d",
-  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့္မည်": "https://example.com/live",
+  "LIVEကြည့်ရှုရန် - Liveပွဲကြည့်မည်": "https://example.com/live",
   "Bet Slot Game - အခုကစားမည်": "https://example.com/slot",
   "Point - အမှတ်ယူမည်": "https://example.com/point",
   "Free Game - Free Gameကစားမည်": "https://example.com/free",
   "Support - 24Hr Online Service": "https://t.me/nexbitonlineservice"
 };
 
-/* ================== 左右两列 ReplyKeyboard ================== */
+/* ================== ReplyKeyboard（左右两列） ================== */
 const buildKeyboard = () => {
   const keys = Object.keys(LINKS);
   const rows = [];
@@ -39,54 +38,64 @@ const buildKeyboard = () => {
 
 const KEYBOARD = buildKeyboard();
 
-/* ================== 发送消息（HTML 强制可点） ================== */
-const sendMessage = (chat_id, text, reply_markup = null) =>
-  fetch(`${API}/sendMessage`, {
+/* ================== 发送消息（强制可点击链接） ================== */
+const sendMessage = async (chat_id, text, reply_markup = null) => {
+  const res = await fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id,
       text,
       reply_markup,
-      parse_mode: "HTML",                 // ⭐ 关键
+      parse_mode: "HTML",
       disable_web_page_preview: false
     })
   });
+
+  const data = await res.json();
+  console.log("TG response:", data);
+};
 
 /* ================== 路由 ================== */
 app.get("/", (_, res) => res.send("Telegram Bot Running"));
 
 app.post("/webhook", async (req, res) => {
+  console.log("Incoming update:", JSON.stringify(req.body));
+
   const msg = req.body.message;
-  if (!msg) return res.sendStatus(200);
+  if (!msg || !msg.text) {
+    return res.sendStatus(200);
+  }
 
   const chatId = msg.chat.id;
-  const text = msg.text || "";
+  const rawText = msg.text;
+  const text = rawText.trim(); // ⭐⭐⭐ 关键
 
-  /* ===== /start 显示菜单 ===== */
+  console.log("User text:", JSON.stringify(text));
+
+  /* ===== /start ===== */
   if (text === "/start") {
     await sendMessage(
       chatId,
-      "🎉 <b>Welcome</b> 🎉<br/><br/>👇 请从下方菜单选择 👇",
+      "🎉 <b>Welcome</b> 🎉<br/><br/>👇 Please choose from menu 👇",
       KEYBOARD
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 点击按钮 → 回可点击链接 ===== */
+  /* ===== 按钮点击 ===== */
   if (LINKS[text]) {
-    const url = LINKS[text];
     await sendMessage(
       chatId,
-      `🔗 <b>${text}</b><br/><br/>👉 <a href="${url}">点击这里打开</a>`
+      `🔗 <b>${text}</b><br/><br/>👉 <a href="${LINKS[text]}">点击这里打开</a>`
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 其他文字 ===== */
+  /* ===== 兜底（防止“没反应”） ===== */
   await sendMessage(
     chatId,
-    "👇 请从下方菜单选择 👇",
+    "⚠️ 未识别的指令，请使用下方菜单 👇",
     KEYBOARD
   );
 
