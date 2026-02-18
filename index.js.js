@@ -55,15 +55,15 @@ const sendMessage = (chat_id, text, reply_markup = null) =>
   fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id, text, reply_markup })
+    body: JSON.stringify({
+      chat_id,
+      text,
+      reply_markup,
+      disable_web_page_preview: false
+    })
   });
 
 const isAdmin = id => ADMINS.has(Number(id));
-
-const addLog = msg => {
-  LOGS.push(`[${new Date().toISOString()}] ${msg}`);
-  if (LOGS.length > 50) LOGS.shift();
-};
 
 /* ================== 路由 ================== */
 app.get("/", (_, res) => res.send("Telegram Bot Running"));
@@ -76,19 +76,22 @@ app.post("/webhook", async (req, res) => {
   const userId = msg.from.id;
   const text = msg.text || "";
 
-  /* ===== /start 一定显示菜单 ===== */
+  /* ===== /start 显示菜单 ===== */
   if (text === "/start") {
     await sendMessage(
       chatId,
-      "🎉 Welcome 🎉\n\nအောက်က Menu မှာရွေးပြီးအသုံးပြုနိုင်ပါတယ်။",
+      "🎉 Welcome 🎉\n\n👇 Please choose from menu 👇",
       KEYBOARD
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 菜单按钮点击 ===== */
+  /* ===== 菜单按钮点击 → 显示可点击链接 ===== */
   if (LINKS[text]) {
-    await sendMessage(chatId, LINKS[text]);
+    await sendMessage(
+      chatId,
+      `🔗 ${text}\n\n👉 点击打开：\n${LINKS[text]}`
+    );
     return res.sendStatus(200);
   }
 
@@ -99,41 +102,8 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const [cmd, arg] = text.split(" ");
-
-    switch (cmd) {
-      case "/status":
-        await sendMessage(chatId, "✅ Bot Online\nAdmins: " + ADMINS.size);
-        break;
-
-      case "/restart":
-        addLog("Restart requested");
-        await sendMessage(chatId, "♻️ Restarting...");
-        process.exit(0);
-
-      case "/logs":
-        await sendMessage(chatId, LOGS.join("\n") || "No logs");
-        break;
-
-      case "/admins":
-        await sendMessage(chatId, [...ADMINS].join("\n"));
-        break;
-
-      case "/addadmin":
-        if (arg) {
-          ADMINS.add(Number(arg));
-          addLog(`Admin added: ${arg}`);
-          await sendMessage(chatId, `✅ Admin added: ${arg}`);
-        }
-        break;
-
-      case "/deladmin":
-        if (arg && Number(arg) !== OWNER_ID) {
-          ADMINS.delete(Number(arg));
-          addLog(`Admin removed: ${arg}`);
-          await sendMessage(chatId, `❌ Admin removed: ${arg}`);
-        }
-        break;
+    if (text === "/status") {
+      await sendMessage(chatId, "✅ Bot Online");
     }
 
     return res.sendStatus(200);
