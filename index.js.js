@@ -9,10 +9,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const OWNER_ID = Number(process.env.OWNER_ID);
 const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-/* ================== 管理员 & 日志 ================== */
-let ADMINS = new Set([OWNER_ID]);
-let LOGS = [];
-
 /* ================== 菜单按钮 → 链接 ================== */
 const LINKS = {
   "Start - Start Now": "https://www.nexbitsafe.com/",
@@ -25,32 +21,25 @@ const LINKS = {
   "Bet Slot Game - အခုကစားမည်": "https://example.com/slot",
   "Point - အမှတ်ယူမည်": "https://example.com/point",
   "Free Game - Free Gameကစားမည်": "https://example.com/free",
-  "Support - 24Hr Online Service": "https://t.me/your_support"
+  "Support - 24Hr Online Service": "https://t.me/nexbitonlineservice"
 };
 
-/* ================== 左右一排键盘（2列） ================== */
+/* ================== 左右两列 ReplyKeyboard ================== */
 const buildKeyboard = () => {
   const keys = Object.keys(LINKS);
   const rows = [];
-
   for (let i = 0; i < keys.length; i += 2) {
-    rows.push(
-      [
-        { text: keys[i] },
-        ...(keys[i + 1] ? [{ text: keys[i + 1] }] : [])
-      ]
-    );
+    rows.push([
+      { text: keys[i] },
+      ...(keys[i + 1] ? [{ text: keys[i + 1] }] : [])
+    ]);
   }
-
-  return {
-    keyboard: rows,
-    resize_keyboard: true
-  };
+  return { keyboard: rows, resize_keyboard: true };
 };
 
 const KEYBOARD = buildKeyboard();
 
-/* ================== 工具函数 ================== */
+/* ================== 发送消息（HTML 强制可点） ================== */
 const sendMessage = (chat_id, text, reply_markup = null) =>
   fetch(`${API}/sendMessage`, {
     method: "POST",
@@ -59,11 +48,10 @@ const sendMessage = (chat_id, text, reply_markup = null) =>
       chat_id,
       text,
       reply_markup,
+      parse_mode: "HTML",                 // ⭐ 关键
       disable_web_page_preview: false
     })
   });
-
-const isAdmin = id => ADMINS.has(Number(id));
 
 /* ================== 路由 ================== */
 app.get("/", (_, res) => res.send("Telegram Bot Running"));
@@ -73,46 +61,32 @@ app.post("/webhook", async (req, res) => {
   if (!msg) return res.sendStatus(200);
 
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
   const text = msg.text || "";
 
   /* ===== /start 显示菜单 ===== */
   if (text === "/start") {
     await sendMessage(
       chatId,
-      "🎉 Welcome 🎉\n\n👇 Please choose from menu 👇",
+      "🎉 <b>Welcome</b> 🎉<br/><br/>👇 请从下方菜单选择 👇",
       KEYBOARD
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 菜单按钮点击 → 显示可点击链接 ===== */
+  /* ===== 点击按钮 → 回可点击链接 ===== */
   if (LINKS[text]) {
+    const url = LINKS[text];
     await sendMessage(
       chatId,
-      `🔗 ${text}\n\n👉 点击打开：\n${LINKS[text]}`
+      `🔗 <b>${text}</b><br/><br/>👉 <a href="${url}">点击这里打开</a>`
     );
     return res.sendStatus(200);
   }
 
-  /* ===== 管理员命令 ===== */
-  if (text.startsWith("/")) {
-    if (!isAdmin(userId)) {
-      await sendMessage(chatId, "⛔ Admin only");
-      return res.sendStatus(200);
-    }
-
-    if (text === "/status") {
-      await sendMessage(chatId, "✅ Bot Online");
-    }
-
-    return res.sendStatus(200);
-  }
-
-  /* ===== 普通文字也显示菜单 ===== */
+  /* ===== 其他文字 ===== */
   await sendMessage(
     chatId,
-    "👇 Please choose from menu 👇",
+    "👇 请从下方菜单选择 👇",
     KEYBOARD
   );
 
