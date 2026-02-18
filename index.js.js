@@ -97,7 +97,7 @@ app.post("/webhook", async (req, res) => {
   if (LINKS[text]) {
     await sendMessage(
       chatId,
-      `🔗 <b>${text}</b>\n\n👉 <a href="${LINKS[text]}">点击这里打开</a>`
+      `🔗 <b>${text}</b>\n\n👉 <a href="${LINKS[text]}">Click To Open</a>`
     );
     return res.sendStatus(200);
   }
@@ -105,7 +105,7 @@ app.post("/webhook", async (req, res) => {
   /* ===== 兜底（防止没反应） ===== */
   await sendMessage(
     chatId,
-    "⚠️ 未识别的指令，请使用下方菜单 👇",
+    "👇 Please choose from menu 👇",
     KEYBOARD
   );
 
