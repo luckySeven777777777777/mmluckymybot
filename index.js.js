@@ -15,7 +15,7 @@ let LOGS = [];
 
 /* ================== 菜单按钮 → 链接 ================== */
 const LINKS = {
-  "Start - Start Now": "https://example.com/start",
+  "Start - Start Now": "https://www.nexbitsafe.com/",
   "Bonus - အခုပဲရယူလိုက်ပါ": "https://example.com/bonus",
   "Deposit - Kbzpay/WaveMoney/Binanceငွေသွင်းမည်": "https://example.com/deposit",
   "Withdrawl - Kbzpay/Wavemoney/Binanceငွေထုတ်မည်": "https://example.com/withdraw",
@@ -28,10 +28,27 @@ const LINKS = {
   "Support - 24Hr Online Service": "https://t.me/your_support"
 };
 
-const KEYBOARD = {
-  keyboard: Object.keys(LINKS).map(k => [{ text: k }]),
-  resize_keyboard: true
+/* ================== 左右一排键盘（2列） ================== */
+const buildKeyboard = () => {
+  const keys = Object.keys(LINKS);
+  const rows = [];
+
+  for (let i = 0; i < keys.length; i += 2) {
+    rows.push(
+      [
+        { text: keys[i] },
+        ...(keys[i + 1] ? [{ text: keys[i + 1] }] : [])
+      ]
+    );
+  }
+
+  return {
+    keyboard: rows,
+    resize_keyboard: true
+  };
 };
+
+const KEYBOARD = buildKeyboard();
 
 /* ================== 工具函数 ================== */
 const sendMessage = (chat_id, text, reply_markup = null) =>
@@ -59,7 +76,17 @@ app.post("/webhook", async (req, res) => {
   const userId = msg.from.id;
   const text = msg.text || "";
 
-  /* ===== 菜单按钮处理 ===== */
+  /* ===== /start 一定显示菜单 ===== */
+  if (text === "/start") {
+    await sendMessage(
+      chatId,
+      "🎉 Welcome 🎉\n\nအောက်က Menu မှာရွေးပြီးအသုံးပြုနိုင်ပါတယ်။",
+      KEYBOARD
+    );
+    return res.sendStatus(200);
+  }
+
+  /* ===== 菜单按钮点击 ===== */
   if (LINKS[text]) {
     await sendMessage(chatId, LINKS[text]);
     return res.sendStatus(200);
@@ -112,10 +139,10 @@ app.post("/webhook", async (req, res) => {
     return res.sendStatus(200);
   }
 
-  /* ===== 默认欢迎 ===== */
+  /* ===== 普通文字也显示菜单 ===== */
   await sendMessage(
     chatId,
-    "🎉 Welcome 🎉\n\nအောက်က Menu မှာရွေးပြီးအသုံးပြုနိုင်ပါတယ်။",
+    "👇 Please choose from menu 👇",
     KEYBOARD
   );
 
